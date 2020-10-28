@@ -247,6 +247,7 @@ export default {
         const xhr = new XMLHttpRequest()
 
         xhr.open('POST', url)
+        xhr.setRequestHeader("Content-Type", "application/json;charset=UTF-8")
 
         xhr.onload = () => {
           this.xhrs = this.xhrs.filter(x => x !== xhr)
@@ -317,11 +318,11 @@ export default {
           })
       }
 
-      const uploadComplete = () => {
+      const uploadComplete = (parts) => {
         this.workingThreads++
         console.debug('oarepo-uploader: completing multipart upload')
 
-        this.__completeMultipartUpload(complete_url, this.uploadedParts)
+        this.__completeMultipartUpload(complete_url, parts)
           .then((response) => {
             console.debug('oarepo-uploader: multipart upload complete', response)
             this.__fileUploaded(file, {file})
@@ -356,7 +357,7 @@ export default {
 
           if (parts.length === num_chunks) {
             console.debug('oarepo-uploader: all parts uploaded', parts)
-            uploadComplete()
+            uploadComplete(parts)
           } else {
             console.error(`oarepo-uploader: failed to upload ${num_chunks - parts.length} parts`, result)
             uploadFailed(file)
@@ -370,10 +371,11 @@ export default {
       return new Promise((resolve, reject) => {
         const
             xhr = new XMLHttpRequest(),
-            begin = part.partId - 1 * partSize,
+            begin = (part.partId - 1) * partSize,
             end = (begin + partSize) > file.size ? file.size : (begin + partSize),
             chunk = file.slice(begin, end),
             headers = this.__getProp(factory, 'headers', file)
+        console.debug('oarepo-uploader: uploading chunk', begin, end, part.partId)
 
 
         xhr.open(this.__getProp(factory, 'method', file), part.partUrl)

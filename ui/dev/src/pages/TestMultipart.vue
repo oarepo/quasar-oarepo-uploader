@@ -25,7 +25,7 @@ export default {
     return {
       s3Bucket: '',
       s3Files: [],
-      filesAPI: 'https://localhost/api/draft/records/1/files/'
+      filesAPI: 'https://localhost:5000/api/draft/records/1/files/'
     }
   },
   created () {
