@@ -101,6 +101,7 @@ export default {
       const file = queue[0]
       this.__runFactory(file)
     },
+
     __getProp (factory, name, arg) {
       return factory[name] !== undefined
           ? getFn(factory[name])(arg)
@@ -199,6 +200,8 @@ export default {
       }
 
       xhr.open('POST', url)
+
+      this.__setXhrHeaders(xhr, factory, file)
       xhr.setRequestHeader("Content-Type", "application/json;charset=UTF-8")
 
       const headers = this.__getProp(factory, 'headers', file)
@@ -217,11 +220,12 @@ export default {
       })
       xhr.send(body)
     },
-    __abortMultipartUpload (url) {
+    __abortMultipartUpload (url, factory, file) {
       return new Promise((resolve, reject) => {
         const xhr = new XMLHttpRequest()
 
         xhr.open('POST', url)
+        this.__setXhrHeaders(xhr, factory, file)
 
         xhr.onload = () => {
           this.xhrs = this.xhrs.filter(x => x !== xhr)
@@ -243,12 +247,13 @@ export default {
         xhr.send()
       })
     },
-    __completeMultipartUpload (url, parts) {
+    __completeMultipartUpload (url, parts, factory, file) {
       return new Promise((resolve, reject) => {
         const xhr = new XMLHttpRequest()
 
         xhr.open('POST', url)
         xhr.setRequestHeader("Content-Type", "application/json;charset=UTF-8")
+        this.__setXhrHeaders(xhr, factory, file)
 
         xhr.onload = () => {
           this.xhrs = this.xhrs.filter(x => x !== xhr)
@@ -284,6 +289,12 @@ export default {
         xhr
       })
     },
+    __setXhrHeaders (xhr, factory, file) {
+      const headers = this.__getProp(factory, 'headers', file)
+      headers && headers.forEach(head => {
+        xhr.setRequestHeader(head.name, head.value)
+      })
+    },
     __buildPartQueue (partsUrl, numParts) {
       return new Array(numParts)
           .fill()
@@ -310,7 +321,7 @@ export default {
         this.workingThreads++
         console.warn('oarepo-uploader: aborting multipart upload')
 
-        this.__abortMultipartUpload(abort_url)
+        this.__abortMultipartUpload(abort_url, factory, file)
           .then((response) => {
             console.debug('oarepo-uploader: multipart upload aborted')
           }).finally(() => {
@@ -323,7 +334,7 @@ export default {
         this.workingThreads++
         console.debug('oarepo-uploader: completing multipart upload')
 
-        this.__completeMultipartUpload(complete_url, parts)
+        this.__completeMultipartUpload(complete_url, parts, factory, file)
           .then((response) => {
             console.debug('oarepo-uploader: multipart upload complete', response)
             this.__fileUploaded(file, {file})
@@ -374,16 +385,12 @@ export default {
             xhr = new XMLHttpRequest(),
             begin = (part.partId - 1) * partSize,
             end = (begin + partSize) > file.size ? file.size : (begin + partSize),
-            chunk = file.slice(begin, end),
-            headers = this.__getProp(factory, 'headers', file)
+            chunk = file.slice(begin, end)
+
         console.debug('oarepo-uploader: uploading chunk', begin, end, part.partId)
 
-
         xhr.open(this.__getProp(factory, 'method', file), part.partUrl)
-
-        headers && headers.forEach(head => {
-          xhr.setRequestHeader(head.name, head.value)
-        })
+        this.__setXhrHeaders(xhr, factory, file)
 
         xhr.onload = () => {
           this.xhrs = this.xhrs.filter(x => x !== xhr)
@@ -477,11 +484,7 @@ export default {
           url
       )
 
-      const headers = this.__getProp(factory, 'headers', file)
-      headers && headers.forEach(head => {
-        xhr.setRequestHeader(head.name, head.value)
-      })
-
+      this.__setXhrHeaders(xhr, factory, file)
       this.__setFileUploading(file, xhr)
       maxUploadSize += file.size
 

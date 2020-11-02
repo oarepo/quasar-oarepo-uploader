@@ -2,7 +2,9 @@
   <q-page padding>
     <OARepoUploader
       :url="filesAPI"
-      :multipart-threshold="1024">
+      :multipart-threshold="1024"
+      :headers="[{name: 'Access-Control-Allow-Origin', value: '*'}]"
+    >
     </OARepoUploader>
     <h5>Uploaded files</h5>
     <q-item class="col-auto q-pa-lg"
@@ -25,7 +27,7 @@ export default {
     return {
       s3Bucket: '',
       s3Files: [],
-      filesAPI: 'https://localhost:5000/api/draft/records/1/files/'
+      filesAPI: 'https://repozitar-test.cesnet.cz/api/draft/records/36/files/'
     }
   },
   created () {
