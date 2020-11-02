@@ -12,7 +12,7 @@
   "bugs": "https://github.com/oarepo/quasar-oarepo-uploader/issues",
   "homepage": "https://github.com/oarepo/quasar-oarepo-uploader",
   "dependencies": {
-    "quasar-ui-oarepo-uploader": "latest"
+    "@oarepo/quasar-uploader": "latest"
   },
   "keywords": [
     "quasar",

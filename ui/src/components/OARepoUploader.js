@@ -1,6 +1,7 @@
 import { QUploaderBase } from 'quasar'
-import slugify from 'slugify'
-import PromisePool from '@supercharge/promise-pool'
+
+const PromisePool = require('@supercharge/promise-pool')
+const slugify = require('slugify')
 
 function getFn (prop) {
   return typeof prop === 'function'
