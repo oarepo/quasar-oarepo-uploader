@@ -19,19 +19,16 @@ Create and register a boot file:
 
 ```js
 import Vue from 'vue'
-import Plugin from 'quasar-ui-oarepo-uploader'
-import 'quasar-ui-oarepo-uploader/dist/index.css'
+import OARepoUploader from '@oarepo/quasar-uploader'
 
-Vue.use(Plugin)
+Vue.use(OARepoUploader)
 ```
 
 **OR**:
 
 ```html
-<style src="quasar-ui-oarepo-uploader/dist/index.css"></style>
-
 <script>
-import { OARepoUploader } from 'quasar-ui-oarepo-uploader'
+import { OARepoUploader } from '@oarepo/quasar-uploader'
 
 export default {
   components: {
@@ -45,19 +42,16 @@ export default {
 
 ```js
 import Vue from 'vue'
-import Plugin from 'quasar-ui-oarepo-uploader'
-import 'quasar-ui-oarepo-uploader/dist/index.css'
+import OARepoUploader from '@oarepo/quasar-uploader'
 
-Vue.use(Plugin)
+Vue.use(OARepoUploader)
 ```
 
 **OR**:
 
 ```html
-<style src="quasar-ui-oarepo-uploader/dist/index.css"></style>
-
 <script>
-import { OARepoUploader } from 'quasar-ui-oarepo-uploader'
+import { OARepoUploader } from '@oarepo/quasar-uploader'
 
 export default {
   components: {
@@ -76,16 +70,16 @@ Add the following tag(s) after the Quasar ones:
 ```html
 <head>
   <!-- AFTER the Quasar stylesheet tags: -->
-  <link href="https://cdn.jsdelivr.net/npm/quasar-ui-oarepo-uploader/dist/index.min.css" rel="stylesheet" type="text/css">
+  <link href="https://cdn.jsdelivr.net/npm/oarepo-quasar-uploader/dist/index.min.css" rel="stylesheet" type="text/css">
 </head>
 <body>
   <!-- at end of body, AFTER Quasar script(s): -->
-  <script src="https://cdn.jsdelivr.net/npm/quasar-ui-oarepo-uploader/dist/index.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/oarepo-quasar-uploader/dist/index.umd.min.js"></script>
 </body>
 ```
 If you need the RTL variant of the CSS, then go for the following (instead of the above stylesheet link):
 ```html
-<link href="https://cdn.jsdelivr.net/npm/quasar-ui-oarepo-uploader/dist/index.rtl.min.css" rel="stylesheet" type="text/css">
+<link href="https://cdn.jsdelivr.net/npm/oarepo-quasar-uploader/dist/index.rtl.min.css" rel="stylesheet" type="text/css">
 ```
 
 # Setup
