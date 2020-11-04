@@ -47,6 +47,11 @@ module.exports = function (ctx) {
 
     // Full list of options: https://quasar.dev/quasar-cli/quasar-conf-js#Property%3A-build
     build: {
+      env: {
+        CONCURRENCY: process.env.CONCURRENCY,
+        RECORD_FILES_API: process.env.RECORD_FILES_API,
+        MULTIPART_THRESHOLD: process.env.MULTIPART_THRESHOLD
+      },
       vueRouterMode: 'history',
 
       chainWebpack (chain) {

@@ -2,7 +2,8 @@
   <q-page padding>
     <OARepoUploader
       :url="filesAPI"
-      :multipart-threshold="1024"
+      :multipart-threshold="mpThreshold"
+      :max-concurrency="concurrency"
       :headers="[{name: 'Access-Control-Allow-Origin', value: '*'}]"
     >
     </OARepoUploader>
@@ -27,11 +28,21 @@ export default {
     return {
       s3Bucket: '',
       s3Files: [],
-      filesAPI: 'https://repozitar-test.cesnet.cz/api/draft/records/36/files/'
     }
   },
   created () {
     this.fetchFiles()
+  },
+  computed: {
+    filesAPI () {
+      return process.env.RECORD_FILES_API || alert('RECORD_FILES_API env variable not set')
+    },
+    mpThreshold () {
+      return process.env.MULTIPART_THRESHOLD || 1024 * 1024 * 50
+    },
+    concurrency () {
+      return process.env.CONCURRENCY || 5
+    }
   },
   methods: {
     downloadFile(file) {

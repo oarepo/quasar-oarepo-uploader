@@ -1,0 +1,12 @@
+
+version: '2.3'
+services:
+  ui:
+    restart: "always"
+    image: "quasar-uploader-demo:latest"
+    environment:
+      - "CONCURRENCY=6"
+      - "RECORD_FILES_API=https://localhost:5000/api/draft/records/1/files/"
+      - "MULTIPART_THRESHOLD=52428800"
+    ports:
+      - 127.0.0.1:8080:8080
