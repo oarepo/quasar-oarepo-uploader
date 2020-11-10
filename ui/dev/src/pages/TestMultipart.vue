@@ -7,6 +7,10 @@
       :headers="[{name: 'Access-Control-Allow-Origin', value: '*'}]"
     >
     </OARepoUploader>
+    <h6>Settings</h6>
+    <p>Upload URL: {{ filesAPI }}</p>
+    <p>Concurrency: {{ concurrency }}</p>
+    <p>Multipart Threshold: {{ mpThreshold }}</p>
     <h5>Uploaded files</h5>
     <q-item class="col-auto q-pa-lg"
             v-for="att in s3Files"
@@ -38,10 +42,10 @@ export default {
       return process.env.RECORD_FILES_API || alert('RECORD_FILES_API env variable not set')
     },
     mpThreshold () {
-      return process.env.MULTIPART_THRESHOLD || 1024 * 1024 * 50
+      return parseInt(process.env.MULTIPART_THRESHOLD) || 1024 * 1024 * 50
     },
     concurrency () {
-      return process.env.CONCURRENCY || 5
+      return parseInt(process.env.CONCURRENCY) || 5
     }
   },
   methods: {
