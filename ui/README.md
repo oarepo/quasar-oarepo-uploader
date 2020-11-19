@@ -27,6 +27,15 @@ Vue.use(OARepoUploader)
 **OR**:
 
 ```html
+<template>
+    <OARepoUploader
+      :url="https://oarepo-micro-api.local/api/records/1/files/"
+      :multipart-threshold=512*1024*1024
+      :max-concurrency=10
+      :headers="[{name: 'Access-Control-Allow-Origin', value: '*'}]"
+    >
+    </OARepoUploader>
+</template>
 <script>
 import { OARepoUploader } from '@oarepo/quasar-uploader'
 
