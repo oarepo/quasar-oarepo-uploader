@@ -70,6 +70,14 @@ export default {
         },
 
     },
+    created() {
+        this.$on('added', (files) => {
+            this.__resetProgress(files)
+        })
+        this.$on('removed', () => {
+            this.__resetProgress(this.files)
+        })
+    },
     methods: {
         // [REQUIRED]
         // abort and clean up any process
@@ -101,7 +109,21 @@ export default {
             const file = queue[0]
             this.__runFactory(file)
         },
+        removeUploadedFiles () {
+            if (!this.disable) {
+                this.files = this.files.filter(f => {
+                    if (f.__status !== 'uploaded') {
+                        return true
+                    }
 
+                    f._img !== void 0 && window.URL.revokeObjectURL(f._img.src)
+
+                    return false
+                })
+                this.__resetProgress(this.files)
+                this.uploadedFiles = []
+            }
+        },
         __getProp(factory, name, arg) {
             return factory[name] !== undefined
                 ? getFn(factory[name])(arg)
@@ -291,7 +313,6 @@ export default {
             const xhr = new XMLHttpRequest()
             let aborted,
                 uploadSize = 0
-            this.uploadedSize = 0
 
             xhr.open(this.__getProp(factory, 'method', file), url)
             this.__setXhrHeaders(xhr, factory, file)
@@ -322,7 +343,12 @@ export default {
                 this.xhrs = this.xhrs.filter(x => x !== xhr)
             }
             xhr.onerror = function (e) {
-                console.error("Error Status: " + e.target.status);
+                console.error("Error Status: " + e.target.status)
+                aborted = true
+                this.uploadedSize -= uploadSize
+                this.__fileUploadFailed(file, {file, xhr})
+                this.workingThreads--
+                this.xhrs = this.xhrs.filter(x => x !== xhr)
             }
 
             return xhr
@@ -417,9 +443,9 @@ export default {
                 .then((response) => {
                     console.debug('oarepo-uploader: multipart upload aborted')
                 }).finally(() => {
-                this.workingThreads--
-                this.__fileUploadFailed(file, {file})
-            })
+                    this.workingThreads--
+                    this.__fileUploadFailed(file, {file})
+                })
         },
         __setFileUploading(file, xhr) {
             this.__updateFile(file, 'uploading', 0)
@@ -445,6 +471,16 @@ export default {
                     return {partId: index + 1, partUrl: partsUrl[index]}
                 })
         },
+        __resetProgress(files) {
+            console.debug('resetting progress counters')
+            this.uploadSize = 0
+            this.uploadedSize = 0
+            files.forEach(file => {
+                if (file.__status === 'idle' || file.__status === 'uploading') {
+                    this.uploadSize += file.size
+                }
+            })
+        },
         __uploadParts(factory, file, multipartUploadConfig) {
             const {chunk_size, abort_url, num_chunks, complete_url, parts_url} = multipartUploadConfig,
                 concurrency = this.__getProp(factory, 'maxConcurrency', file)
@@ -466,7 +502,9 @@ export default {
                 .withConcurrency(concurrency)
                 .for(this.partQueue)
                 .process(async (part) => {
-                    if (that.aborted) { return }
+                    if (that.aborted) {
+                        return
+                    }
 
                     console.debug('oarepo-uploader: uploading part', part.partId)
                     that.workingThreads++
@@ -490,7 +528,7 @@ export default {
                     } else {
                         aborted = true
                         console.error(`oarepo-uploader: failed to upload ${num_chunks - parts.length} parts`, result)
-                        this.__multipartUploadFailedHandler(abort_url, factory,file)
+                        this.__multipartUploadFailedHandler(abort_url, factory, file)
                     }
                 }).catch((err) => {
                     aborted = true
@@ -502,7 +540,7 @@ export default {
             return new Promise((resolve, reject) => {
                 const _progressCallback = e => {
                     this.chunkProgress[part.partId] = Math.min(partSize, e.loaded)
-                    this.uploadedSize = this.chunkProgress.reduce(function(a, b){
+                    this.uploadedSize = this.chunkProgress.reduce((a, b) => {
                         return a + b;
                     }, 0)
 

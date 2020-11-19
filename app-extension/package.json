@@ -1,6 +1,6 @@
 {
   "name": "quasar-app-extension-oarepo-uploader",
-  "version": "1.0.0-alpha.1",
+  "version": "1.0.1",
   "description": "Uploader component with support for AWS S3 multipart file uploads using OARepo APIs",
   "author": "Miroslav Bauer <bauer@cesnet.cz>",
   "license": "MIT",
@@ -12,7 +12,7 @@
   "bugs": "https://github.com/oarepo/quasar-uploader/issues",
   "homepage": "https://github.com/oarepo/quasar-uploader",
   "dependencies": {
-    "@oarepo/quasar-uploader": "^1.0.0-alpha.1"
+    "@oarepo/quasar-uploader": "^1.0.1"
   },
   "keywords": [
     "quasar",

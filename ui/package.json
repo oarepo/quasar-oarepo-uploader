@@ -1,6 +1,6 @@
 {
   "name": "@oarepo/quasar-uploader",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "author": "Miroslav Bauer <bauer@cesnet.cz>",
   "description": "Uploader component with support for AWS S3 multipart file uploads",
   "license": "MIT",
