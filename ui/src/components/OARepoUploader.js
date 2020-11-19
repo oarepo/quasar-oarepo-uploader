@@ -44,7 +44,6 @@ export default {
             promises: [],
             workingThreads: 0,
             chunkQueue: [],
-            uploadedChunks: []
         }
     },
     computed: {
@@ -77,6 +76,7 @@ export default {
         // that is in progress
         abort() {
             console.warn('oarepo-uploader: aborting upload', this.xhrs)
+            this.aborted = true
             this.xhrs.forEach(x => {
                 x.abort()
             })
@@ -211,14 +211,25 @@ export default {
                     statusText: xhr.statusText
                 });
             }
+            xhr.onabort = () => {
+                this.xhrs = this.xhrs.filter(x => x !== xhr)
+                reject({
+                    status: this.status,
+                    statusText: xhr.statusText
+                });
+            }
 
             return xhr
         },
-        __xhrUploadMultipartPart(part, factory, file, resolve, reject) {
+        __xhrUploadMultipartPart(part, factory, file, onprogress, resolve, reject) {
             const xhr = new XMLHttpRequest()
             xhr.open(this.__getProp(factory, 'method', file), part.partUrl)
             this.__setXhrHeaders(xhr, factory, file)
 
+
+            xhr.upload.addEventListener('progress', e => {
+                onprogress(e)
+            })
             xhr.onload = () => {
                 this.xhrs = this.xhrs.filter(x => x !== xhr)
                 if (xhr.status && xhr.status === 200) {
@@ -234,6 +245,13 @@ export default {
                         status: this.status,
                         statusText: xhr.statusText
                     }
+                });
+            }
+            xhr.onabort = () => {
+                this.xhrs = this.xhrs.filter(x => x !== xhr)
+                reject({
+                    status: this.status,
+                    statusText: xhr.statusText
                 });
             }
             return xhr
@@ -260,38 +278,27 @@ export default {
                     statusText: xhr.statusText
                 });
             }
+            xhr.onabort = () => {
+                this.xhrs = this.xhrs.filter(x => x !== xhr)
+                reject({
+                    status: this.status,
+                    statusText: xhr.statusText
+                });
+            }
             return xhr
         },
         __xhrUploadFile(url, factory, file) {
             const xhr = new XMLHttpRequest()
             let aborted,
-                uploadIndexSize = 0,
-                uploadedSize = 0,
-                maxUploadSize = file.size
+                uploadSize = 0
+            this.uploadedSize = 0
 
             xhr.open(this.__getProp(factory, 'method', file), url)
             this.__setXhrHeaders(xhr, factory, file)
 
             xhr.upload.addEventListener('progress', e => {
-                if (aborted === true) {
-                    return
-                }
-
-                const loaded = Math.min(maxUploadSize, e.loaded)
-
-                this.uploadedSize += loaded - uploadedSize
-                uploadedSize = loaded
-
-                let size = uploadedSize - uploadIndexSize
-                const
-                    uploaded = size > file.size
-
-                if (uploaded) {
-                    size -= file.size
-                    uploadIndexSize += file.size
-                    this.__updateFile(file, 'uploading', file.size)
-                } else {
-                    this.__updateFile(file, 'uploading', size)
+                if (!aborted) {
+                    uploadSize = this.__updateUploadProgress(e.loaded, file, uploadSize)
                 }
             }, false)
 
@@ -307,7 +314,7 @@ export default {
                 } else {
                     console.error('oarepo-uploader: direct upload failed', xhr)
                     aborted = true
-                    this.uploadedSize -= uploadedSize
+                    this.uploadedSize -= uploadSize
                     this.__fileUploadFailed(file, {file, xhr})
                 }
 
@@ -319,6 +326,24 @@ export default {
             }
 
             return xhr
+        },
+        __updateUploadProgress(loadedSize, file, uploadedSize) {
+            const loaded = Math.min(file.size, loadedSize)
+
+            this.uploadedSize += loaded - uploadedSize
+            uploadedSize = loaded
+
+            let size = uploadedSize
+            const
+                uploaded = size > file.size
+
+            if (uploaded) {
+                size -= file.size
+                this.__updateFile(file, 'uploading', file.size)
+            } else {
+                this.__updateFile(file, 'uploading', size)
+            }
+            return uploadedSize
         },
         __createMultipartUpload(file, factory) {
             let url = this.__getProp(factory, 'url', file)
@@ -384,6 +409,7 @@ export default {
             })
         },
         __multipartUploadFailedHandler(abort_url, factory, file) {
+            this.uploadedSize = 0
             this.workingThreads++
             console.warn('oarepo-uploader: aborting multipart upload')
 
@@ -423,32 +449,36 @@ export default {
             const {chunk_size, abort_url, num_chunks, complete_url, parts_url} = multipartUploadConfig,
                 concurrency = this.__getProp(factory, 'maxConcurrency', file)
 
-            let
-                uploadIndexSize = 0,
-                uploadedSize = 0,
-                maxUploadSize = file.size,
-                aborted
+            let aborted = this.aborted
 
             this.partQueue = this.__buildPartQueue(parts_url, num_chunks)
+            this.chunkProgress = new Array(num_chunks)
+                .fill()
+                .map((_, index) => {
+                    return 0
+                })
 
             console.debug('oarepo-uploader: uploading parts', multipartUploadConfig, this.partQueue)
 
+            const that = this
             // TODO: mechanism to retry failed chunks?
             PromisePool
                 .withConcurrency(concurrency)
                 .for(this.partQueue)
-                .process(async part => {
+                .process(async (part) => {
+                    if (that.aborted) { return }
+
                     console.debug('oarepo-uploader: uploading part', part.partId)
-                    this.workingThreads++
+                    that.workingThreads++
 
-                    const {etag, err} = await this.__uploadPart(factory, file, part, chunk_size)
+                    const {etag, err} = await that.__uploadPart(factory, file, part, chunk_size)
 
-                    this.workingThreads--
+                    that.workingThreads--
 
                     if (etag) {
                         console.debug('oarepo-uploader: part uploaded', part.partId, etag)
                         return {ETag: etag, PartNumber: part.partId}
-                    } else if (err) {
+                    } else {
                         console.error('oarepo-uploader: part upload failed', part.partId, err)
                     }
                 }).then((result) => {
@@ -458,18 +488,29 @@ export default {
                         console.debug('oarepo-uploader: all parts uploaded', parts)
                         this.__multipartUploadCompleteHandler(parts, complete_url, factory, file)
                     } else {
+                        aborted = true
                         console.error(`oarepo-uploader: failed to upload ${num_chunks - parts.length} parts`, result)
                         this.__multipartUploadFailedHandler(abort_url, factory,file)
                     }
                 }).catch((err) => {
+                    aborted = true
                     console.error('oarepo-uploader: failed to upload parts', err)
                     this.__multipartUploadFailedHandler(abort_url, factory, file)
                 })
         },
         __uploadPart(factory, file, part, partSize) {
             return new Promise((resolve, reject) => {
+                const _progressCallback = e => {
+                    this.chunkProgress[part.partId] = Math.min(partSize, e.loaded)
+                    this.uploadedSize = this.chunkProgress.reduce(function(a, b){
+                        return a + b;
+                    }, 0)
+
+                    this.__updateFile(file, 'uploading', Math.min(file.size, this.uploadedSize))
+                }
+
                 const
-                    xhr = this.__xhrUploadMultipartPart(part, factory, file, resolve, reject),
+                    xhr = this.__xhrUploadMultipartPart(part, factory, file, _progressCallback, resolve, reject),
                     begin = (part.partId - 1) * partSize,
                     end = (begin + partSize) > file.size ? file.size : (begin + partSize),
                     chunk = file.slice(begin, end)
