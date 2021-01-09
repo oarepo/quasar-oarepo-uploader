@@ -124,6 +124,17 @@ export default {
                 this.uploadedFiles = []
             }
         },
+        __fileUploadFailed(file, args) {
+            this.queuedFiles = this.queuedFiles.concat(file)
+            this.__updateFile(file, 'failed')
+            this.$emit('failed', args)
+        },
+        __fileUploaded(file, args) {
+            console.debug('oarepo-uploader: file uploaded', file)
+            this.uploadedFiles = this.uploadedFiles.concat(file)
+            this.__updateFile(file, 'uploaded')
+            this.$emit('uploaded', args)
+        },
         __getProp(factory, name, arg) {
             return factory[name] !== undefined
                 ? getFn(factory[name])(arg)
@@ -316,6 +327,14 @@ export default {
 
             xhr.open(this.__getProp(factory, 'method', file), url)
             this.__setXhrHeaders(xhr, factory, file)
+            xhr.setRequestHeader("Content-Type", file.type || 'application/octet-stream')
+
+            const failed = () => {
+                this.uploadedSize -= uploadSize
+                this.workingThreads--
+                this.xhrs = this.xhrs.filter(x => x !== xhr)
+                return this.__fileUploadFailed
+            }
 
             xhr.upload.addEventListener('progress', e => {
                 if (!aborted) {
@@ -345,10 +364,7 @@ export default {
             xhr.onerror = function (e) {
                 console.error("Error Status: " + e.target.status)
                 aborted = true
-                this.uploadedSize -= uploadSize
-                this.__fileUploadFailed(file, {file, xhr})
-                this.workingThreads--
-                this.xhrs = this.xhrs.filter(x => x !== xhr)
+                failed(file, {file, xhr})
             }
 
             return xhr
@@ -577,17 +593,6 @@ export default {
 
             this.xhrs.push(xhr)
             xhr.send(new Blob([file]))
-        },
-        __fileUploadFailed(file, args) {
-            this.queuedFiles = this.queuedFiles.concat(file)
-            this.__updateFile(file, 'failed')
-            this.$emit('failed', args)
-        },
-        __fileUploaded(file, args) {
-            console.debug('oarepo-uploader: file uploaded', file)
-            this.uploadedFiles = this.uploadedFiles.concat(file)
-            this.__updateFile(file, 'uploaded')
-            this.$emit('uploaded', args)
         }
     }
 }
