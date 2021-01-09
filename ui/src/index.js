@@ -1,23 +1,20 @@
 import { version } from '../package.json'
 
-import Component from './components/OARepoUploader'
+import OARepoUploader from './components/OARepoUploader'
 
 
 export {
   version,
-
-  Component
-
+  OARepoUploader
 }
 
 export default {
   version,
-
-  Component,
+  OARepoUploader,
 
 
   install (Vue) {
-    Vue.component(Component.name, Component)
+    Vue.component(OARepoUploader.name, OARepoUploader)
 
   }
 }
